@@ -238,6 +238,16 @@
                         </div>
 
                     @else
+                        @php
+                            $totalCollected = $currentProject->deposits->where('status', 'verified')->sum('amount');
+                            $targetPercentage = $currentProject->total_target > 0 
+                                ? min(100, round(($totalCollected / $currentProject->total_target) * 100, 1)) 
+                                : 0;
+                            $isCompleted = $currentProject->status === 'completed';
+                            $isTargetReached = $currentProject->total_target > 0 && $totalCollected >= $currentProject->total_target;
+                            $isLocked = $isCompleted || $isTargetReached;
+                        @endphp
+
                         <!-- TAMPILAN DETAIL PROJECT YANG DIPILIH -->
                         <div class="bg-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-lg border border-slate-800 relative overflow-hidden">
                             <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -245,9 +255,13 @@
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                                         {{ $currentProject->category }}
                                     </span>
-                                    @if($currentProject->status === 'completed')
+                                    @if($isCompleted)
                                         <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                             Project Selesai
+                                        </span>
+                                    @elseif($isTargetReached)
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                            Target Tercapai
                                         </span>
                                     @endif
                                 </div>
@@ -271,13 +285,6 @@
                             <p class="text-slate-400 text-sm max-w-2xl mb-6 leading-relaxed">{{ $currentProject->description }}</p>
 
                             <!-- Progress Bar Total Target -->
-                            @php
-                                $totalCollected = $currentProject->deposits->where('status', 'verified')->sum('amount');
-                                $targetPercentage = $currentProject->total_target > 0 
-                                    ? min(100, round(($totalCollected / $currentProject->total_target) * 100, 1)) 
-                                    : 0;
-                            @endphp
-
                             <div class="mb-6 bg-slate-800/90 p-4 rounded-2xl border border-slate-700/80">
                                 <div class="flex justify-between items-center text-xs mb-2">
                                     <span class="text-slate-400 font-medium">Progres Akumulasi Tabungan (Terverifikasi)</span>
@@ -288,7 +295,7 @@
                                 </div>
                             </div>
 
-                            <!-- Status Setoran Anggota Hari Ini -->
+                            <!-- Status Setoran Anggota Hari Ini (Dilengkapi Foto Profil/Avatar) -->
                             <div class="mb-6 p-4 rounded-2xl bg-slate-800/80 border border-slate-700/80">
                                 <div class="flex items-center justify-between mb-3">
                                     <span class="text-xs font-medium text-slate-400">Status Setoran Anggota Hari Ini</span>
@@ -307,8 +314,15 @@
                                                 })
                                                 ->sortByDesc('id')
                                                 ->first();
+
+                                            $memberAvatar = $member->avatar 
+                                                ? ((str_starts_with($member->avatar, 'data:') || str_starts_with($member->avatar, 'http'))
+                                                    ? $member->avatar 
+                                                    : asset('storage/' . $member->avatar))
+                                                : 'https://ui-avatars.com/api/?name='.urlencode($member->name).'&background=10b981&color=fff';
                                         @endphp
-                                        <div class="flex items-center gap-2.5 bg-slate-900/90 px-3.5 py-2 rounded-xl border border-slate-700 text-xs">
+                                        <div class="flex items-center gap-2.5 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-slate-700 text-xs">
+                                            <img src="{{ $memberAvatar }}" alt="{{ $member->name }}" class="w-6 h-6 rounded-full object-cover border border-emerald-500/40">
                                             <span class="font-semibold text-slate-200">{{ $member->name }}</span>
                                             @if($todayDeposit)
                                                 @if($todayDeposit->status === 'verified')
@@ -316,7 +330,7 @@
                                                 @elseif($todayDeposit->status === 'rejected')
                                                     <div class="flex items-center gap-1.5">
                                                         <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">Ditolak</span>
-                                                        @if($member->id === Auth::id())
+                                                        @if($member->id === Auth::id() && !$isLocked)
                                                             <button @click="showDepositModal = true" class="text-[11px] text-amber-400 hover:text-amber-300 font-semibold underline transition">
                                                                 Setor Ulang
                                                             </button>
@@ -333,7 +347,7 @@
                                 </div>
                             </div>
 
-                            <!-- Info Rekening Transfer & Tombol Aksi -->
+                            <!-- Info Rekening Transfer & Tombol Aksi (Terkunci Otomatis Jika Project Selesai/Target Tercapai) -->
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-950 p-4 rounded-2xl border border-slate-800">
                                 <div>
                                     <div class="text-xs text-slate-400">Rekening Tujuan Transfer:</div>
@@ -351,10 +365,18 @@
                                         <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
                                         <span>QRIS Pembayaran</span>
                                     </button>
-                                    <button @click="showDepositModal = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition inline-flex items-center gap-1.5">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                                        <span>Masukkan Tabungan</span>
-                                    </button>
+                                    
+                                    @if($isLocked)
+                                        <button disabled class="px-4 py-2 bg-slate-800/80 text-slate-400 text-xs font-semibold rounded-xl border border-slate-700 cursor-not-allowed inline-flex items-center gap-1.5 shadow-none opacity-80" title="{{ $isCompleted ? 'Project ini telah ditandai selesai.' : 'Target akumulasi tabungan sudah tercapai.' }}">
+                                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                            <span>{{ $isCompleted ? 'Project Selesai' : 'Target Tercapai' }}</span>
+                                        </button>
+                                    @else
+                                        <button @click="showDepositModal = true" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition inline-flex items-center gap-1.5">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                            <span>Masukkan Tabungan</span>
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -395,7 +417,17 @@
                                     <tbody class="divide-y divide-slate-100">
                                         @forelse($deposits as $deposit)
                                         <tr class="hover:bg-slate-50/80">
-                                            <td class="p-3 font-semibold text-slate-800">{{ $deposit->user->name }}</td>
+                                            <td class="p-3 font-semibold text-slate-800 flex items-center gap-2">
+                                                @php
+                                                    $depositUserAvatar = $deposit->user->avatar 
+                                                        ? ((str_starts_with($deposit->user->avatar, 'data:') || str_starts_with($deposit->user->avatar, 'http'))
+                                                            ? $deposit->user->avatar 
+                                                            : asset('storage/' . $deposit->user->avatar))
+                                                        : 'https://ui-avatars.com/api/?name='.urlencode($deposit->user->name).'&background=10b981&color=fff';
+                                                @endphp
+                                                <img src="{{ $depositUserAvatar }}" alt="{{ $deposit->user->name }}" class="w-6 h-6 rounded-full object-cover border border-slate-200">
+                                                <span>{{ $deposit->user->name }}</span>
+                                            </td>
                                             <td class="p-3 text-slate-600">{{ $deposit->deposit_date->format('d M Y') }}</td>
                                             <td class="p-3 font-bold text-emerald-700">Rp {{ number_format($deposit->amount, 0, ',', '.') }}</td>
                                             <td class="p-3">
@@ -608,7 +640,7 @@
         </div>
 
         <!-- Modal Form Setor Tabungan -->
-        @if(isset($currentProject) && $currentProject)
+        @if(isset($currentProject) && $currentProject && !$isLocked)
         <div x-show="showDepositModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" x-cloak x-transition>
             <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100" @click.outside="showDepositModal = false">
                 <div class="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">

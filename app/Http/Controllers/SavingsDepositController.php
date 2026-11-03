@@ -12,6 +12,17 @@ class SavingsDepositController extends Controller
 {
     public function store(Request $request, Project $project)
     {
+        // 1. Cek jika project sudah ditandai selesai
+        if ($project->status === 'completed') {
+            return back()->withErrors(['deposit' => 'Project ini telah ditandai selesai. Setoran baru tidak dapat ditambahkan.']);
+        }
+
+        // 2. Cek jika total akumulasi setoran terverifikasi sudah mencapai/melebihi target
+        $totalCollected = $project->deposits()->where('status', 'verified')->sum('amount');
+        if ($project->total_target > 0 && $totalCollected >= $project->total_target) {
+            return back()->withErrors(['deposit' => 'Target tabungan project ini sudah tercapai. Setoran ditutup.']);
+        }
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:1000|max:99999999999',
             'proof_image' => 'required|image|mimes:jpg,jpeg,png|max:2048',
@@ -44,7 +55,7 @@ class SavingsDepositController extends Controller
             'amount' => $validated['amount'],
             'proof_image' => $proofPath,
             'notes' => $validated['notes'] ?? null,
-            'status' => 'pending', // Default status pending menanti verifikasi owner
+            'status' => 'pending',
         ]);
 
         return back()->with('success', 'Setoran berhasil dikirim dan menunggu verifikasi pemilik project.');
