@@ -18,12 +18,13 @@
             <!-- Profile & Menu di Desktop (Layar Komputer) -->
             <div class="hidden md:flex md:items-center md:gap-4">
                 @auth
-                    <div class="flex items-center gap-3 bg-gray-800/70 border border-gray-700/60 px-3 py-1.5 rounded-full">
-                        <img class="w-7 h-7 rounded-full object-cover border border-emerald-500/40" 
+                    <!-- Link Profil Desktop -->
+                    <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 bg-gray-800/70 hover:bg-gray-800 border border-gray-700/60 hover:border-emerald-500/50 px-3 py-1.5 rounded-full transition group cursor-pointer">
+                        <img class="w-7 h-7 rounded-full object-cover border border-emerald-500/40 group-hover:scale-105 transition" 
                              src="{{ auth()->user()->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=10b981&color=fff' }}" 
                              alt="{{ auth()->user()->name }}">
-                        <span class="text-sm font-medium text-gray-200">{{ auth()->user()->name }}</span>
-                    </div>
+                        <span class="text-sm font-medium text-gray-200 group-hover:text-emerald-400 transition">{{ auth()->user()->name }}</span>
+                    </a>
 
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
@@ -49,16 +50,19 @@
     <!-- Dropdown Menu Mobile Drawer (Tampil Saat Hamburger Diklik di HP) -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden md:hidden border-t border-gray-800 bg-gray-900/95 backdrop-blur-lg px-4 pt-3 pb-5 transition-all duration-200 ease-in-out">
         @auth
-            <!-- Profil User Card di Mobile -->
-            <div class="flex items-center gap-3 p-3 mb-3 bg-gray-800/60 border border-gray-700/70 rounded-xl">
-                <img class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50 shadow-sm" 
+            <!-- Link Profil Card di Mobile -->
+            <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 p-3 mb-3 bg-gray-800/60 hover:bg-gray-800 border border-gray-700/70 hover:border-emerald-500/50 rounded-xl transition group cursor-pointer">
+                <img class="w-10 h-10 rounded-full object-cover border-2 border-emerald-500/50 shadow-sm group-hover:scale-105 transition" 
                      src="{{ auth()->user()->avatar ?? 'https://ui-avatars.com/api/?name='.urlencode(auth()->user()->name).'&background=10b981&color=fff' }}" 
                      alt="{{ auth()->user()->name }}">
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-semibold text-white truncate">{{ auth()->user()->name }}</p>
+                    <p class="text-sm font-semibold text-white group-hover:text-emerald-400 transition truncate">{{ auth()->user()->name }}</p>
                     <p class="text-xs text-gray-400 truncate">{{ auth()->user()->email }}</p>
                 </div>
-            </div>
+                <svg class="w-4 h-4 text-gray-400 group-hover:text-emerald-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            </a>
 
             <!-- Action Links -->
             <div class="space-y-2">
