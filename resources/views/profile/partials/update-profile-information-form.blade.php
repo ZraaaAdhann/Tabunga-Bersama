@@ -17,7 +17,12 @@
             <x-input-label for="avatar" :value="__('Foto Profil (Avatar)')" />
             <div class="mt-2 flex items-center gap-4">
                 @if($user->avatar)
-                    <img src="{{ str_starts_with($user->avatar, 'http') ? $user->avatar : asset('storage/' . $user->avatar) }}" alt="Avatar" class="w-16 h-16 rounded-full object-cover border border-slate-200 shadow-sm">
+                    @php
+                        $avatarSrc = (str_starts_with($user->avatar, 'data:') || str_starts_with($user->avatar, 'http'))
+                            ? $user->avatar
+                            : asset('storage/' . $user->avatar);
+                    @endphp
+                    <img src="{{ $avatarSrc }}" alt="Avatar" class="w-16 h-16 rounded-full object-cover border border-slate-200 shadow-sm">
                 @else
                     <div class="w-16 h-16 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-lg">
                         {{ strtoupper(substr($user->name, 0, 2)) }}
