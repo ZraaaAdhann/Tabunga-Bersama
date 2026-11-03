@@ -409,7 +409,10 @@
                                             </td>
                                             <td class="p-3">
                                                 @if($deposit->proof_image)
-                                                    <button @click="openLightbox('{{ asset('storage/' . $deposit->proof_image) }}')" 
+                                                    @php
+                                                        $proofUrl = str_starts_with($deposit->proof_image, 'data:') ? $deposit->proof_image : asset('storage/' . $deposit->proof_image);
+                                                    @endphp
+                                                    <button @click="openLightbox('{{ $proofUrl }}')" 
                                                             class="inline-flex items-center gap-1.5 text-xs text-emerald-700 hover:text-emerald-800 font-medium bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                                         <span>Lihat Bukti</span>
@@ -726,7 +729,10 @@
                 </div>
                 
                 @if($currentProject->qris_image_path)
-                    <img src="{{ asset('storage/' . $currentProject->qris_image_path) }}" alt="QRIS {{ $currentProject->title }}" class="w-full h-auto rounded-xl border border-slate-200 shadow-sm mb-3">
+                    @php
+                        $qrisUrl = str_starts_with($currentProject->qris_image_path, 'data:') ? $currentProject->qris_image_path : asset('storage/' . $currentProject->qris_image_path);
+                    @endphp
+                    <img src="{{ $qrisUrl }}" alt="QRIS {{ $currentProject->title }}" class="w-full h-auto max-h-80 object-contain rounded-xl border border-slate-200 shadow-sm mb-3">
                 @else
                     <div class="p-8 bg-slate-50 border border-dashed border-slate-300 rounded-xl mb-3 text-slate-400 text-xs">
                         Gambar QRIS belum diunggah untuk project ini.

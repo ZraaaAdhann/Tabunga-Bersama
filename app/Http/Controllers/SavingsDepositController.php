@@ -31,7 +31,11 @@ class SavingsDepositController extends Controller
             return back()->withErrors(['deposit' => 'Anda sudah melakukan setoran aktif untuk project ini hari ini.']);
         }
 
-        $proofPath = $request->file('proof_image')->store('proofs', 'public');
+        // Convert gambar bukti setoran menjadi Base64 string agar aman di Vercel Serverless
+        $file = $request->file('proof_image');
+        $base64Image = base64_encode(file_get_contents($file->getRealPath()));
+        $mimeType = $file->getClientMimeType();
+        $proofPath = 'data:' . $mimeType . ';base64,' . $base64Image;
 
         SavingsDeposit::create([
             'project_id' => $project->id,

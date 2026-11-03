@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('bank_name');
             $table->string('account_number');
             $table->string('account_holder');
-            $table->string('qris_image_path')->nullable();
+            $table->text('qris_image_path')->nullable();
             $table->enum('status', ['active', 'archived', 'completed'])->default('active');
             $table->timestamps();
         });
