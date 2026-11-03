@@ -150,69 +150,83 @@ class ProjectController extends Controller
     }
 
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'category' => 'required|string|max:100',
-        'description' => 'nullable|string',
-        'daily_target' => 'required|numeric|min:0|max:99999999999',
-        'total_target' => 'required|numeric|min:0|max:99999999999',
-        'bank_name' => 'required|string|max:50',
-        'account_number' => 'required|string|max:50',
-        'account_holder' => 'required|string|max:255',
-        'qris_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-    ], [
-        'daily_target.max' => 'Target harian tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
-        'total_target.max' => 'Total target tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
-    ]);
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'category' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'daily_target' => 'required|numeric|min:0|max:99999999999',
+            'total_target' => 'required|numeric|min:0|max:99999999999',
+            'bank_name' => 'required|string|max:50',
+            'account_number' => 'required|string|max:50',
+            'account_holder' => 'required|string|max:255',
+            'qris_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ], [
+            'daily_target.max' => 'Target harian tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
+            'total_target.max' => 'Total target tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
+        ]);
 
-    if ($request->hasFile('qris_image')) {
-        $validated['qris_image_path'] = $request->file('qris_image')->store('qris', 'public');
-    }
+        if ($request->hasFile('qris_image')) {
+            $file = $request->file('qris_image');
+            
+            // Convert gambar menjadi Base64 string agar aman di Vercel Serverless
+            $base64Image = base64_encode(file_get_contents($file->getRealPath()));
+            $mimeType = $file->getClientMimeType();
+            $qrisDataUri = 'data:' . $mimeType . ';base64,' . $base64Image;
 
-    $validated['created_by'] = Auth::id();
-    $validated['status'] = 'active';
-
-    $project = Project::create($validated);
-    $project->members()->attach(Auth::id(), ['role' => 'owner']);
-
-    return redirect()->route('dashboard', ['project_id' => $project->id])
-        ->with('success', 'Project tabungan baru berhasil dibuat.');
-}
-
-public function update(Request $request, Project $project)
-{
-    if ($project->created_by !== Auth::id()) {
-        abort(403, 'Hanya pembuat project yang dapat memperbarui pengaturan.');
-    }
-
-    $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'category' => 'required|string|max:100',
-        'description' => 'nullable|string',
-        'daily_target' => 'required|numeric|min:0|max:99999999999',
-        'total_target' => 'required|numeric|min:0|max:99999999999',
-        'bank_name' => 'required|string|max:50',
-        'account_number' => 'required|string|max:50',
-        'account_holder' => 'required|string|max:255',
-        'qris_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-    ], [
-        'daily_target.max' => 'Target harian tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
-        'total_target.max' => 'Total target tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
-    ]);
-
-    if ($request->hasFile('qris_image')) {
-        if ($project->qris_image_path) {
-            Storage::disk('public')->delete($project->qris_image_path);
+            // Simpan ke key array untuk kolom database
+            $validated['qris_image'] = $qrisDataUri;
+            $validated['qris_image_path'] = $qrisDataUri;
         }
-        $validated['qris_image_path'] = $request->file('qris_image')->store('qris', 'public');
+
+        $validated['created_by'] = Auth::id();
+        $validated['status'] = 'active';
+
+        $project = Project::create($validated);
+        $project->members()->attach(Auth::id(), ['role' => 'owner']);
+
+        return redirect()->route('dashboard', ['project_id' => $project->id])
+            ->with('success', 'Project tabungan baru berhasil dibuat.');
     }
 
-    $project->update($validated);
+    public function update(Request $request, Project $project)
+    {
+        if ($project->created_by !== Auth::id()) {
+            abort(403, 'Hanya pembuat project yang dapat memperbarui pengaturan.');
+        }
 
-    return redirect()->route('dashboard', ['project_id' => $project->id])
-        ->with('success', 'Pengaturan project berhasil diperbarui.');
-}
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'category' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'daily_target' => 'required|numeric|min:0|max:99999999999',
+            'total_target' => 'required|numeric|min:0|max:99999999999',
+            'bank_name' => 'required|string|max:50',
+            'account_number' => 'required|string|max:50',
+            'account_holder' => 'required|string|max:255',
+            'qris_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ], [
+            'daily_target.max' => 'Target harian tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
+            'total_target.max' => 'Total target tidak boleh melebihi Rp 99.999.999.999 (99,9 Miliar).',
+        ]);
+
+        if ($request->hasFile('qris_image')) {
+            $file = $request->file('qris_image');
+            
+            // Convert gambar menjadi Base64 string
+            $base64Image = base64_encode(file_get_contents($file->getRealPath()));
+            $mimeType = $file->getClientMimeType();
+            $qrisDataUri = 'data:' . $mimeType . ';base64,' . $base64Image;
+
+            $validated['qris_image'] = $qrisDataUri;
+            $validated['qris_image_path'] = $qrisDataUri;
+        }
+
+        $project->update($validated);
+
+        return redirect()->route('dashboard', ['project_id' => $project->id])
+            ->with('success', 'Pengaturan project berhasil diperbarui.');
+    }
 
     public function complete(Project $project)
     {
@@ -231,7 +245,8 @@ public function update(Request $request, Project $project)
             abort(403, 'Hanya pembuat project yang dapat menghapus project.');
         }
 
-        if ($project->qris_image_path) {
+        // Hapus file dari storage publik jika masih dalam bentuk path file lokal biasa
+        if ($project->qris_image_path && !str_starts_with($project->qris_image_path, 'data:')) {
             Storage::disk('public')->delete($project->qris_image_path);
         }
 
