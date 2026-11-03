@@ -65,16 +65,20 @@ class ProjectInvitationController extends Controller
     }
 
     public function accept(ProjectInvitation $invitation)
-    {
-        if ($invitation->receiver_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $invitation->update(['status' => 'accepted']);
-        $invitation->project->members()->attach(Auth::id(), ['role' => 'member']);
-
-        return back()->with('success', 'Berhasil bergabung ke project ' . $invitation->project->title);
+{
+    if ($invitation->receiver_id !== Auth::id()) {
+        abort(403);
     }
+
+    // Ubah dari ->attach() menjadi ->syncWithoutDetaching()
+    $invitation->project->members()->syncWithoutDetaching([
+        Auth::id() => ['role' => 'member']
+    ]);
+
+    $invitation->update(['status' => 'accepted']);
+
+    return back()->with('success', 'Anda telah bergabung ke project.');
+}
 
     public function decline(ProjectInvitation $invitation)
     {
